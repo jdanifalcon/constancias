@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificación de Constancia</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0f1a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .card {
+            background: #141b2d;
+            border: 1px solid #1e2a3a;
+            border-radius: 16px;
+            padding: 2.5rem;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .card h1 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #8a94a6;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 1.8rem;
+        }
+
+        /* -- Estado: Buscando -- */
+        .loading { color: #8a94a6; font-size: 0.95rem; }
+
+        /* -- Estado: Encontrado -- */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(46, 204, 113, 0.1);
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            color: #2ecc71;
+            padding: 0.45rem 1.2rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1.6rem;
+        }
+        .badge svg { flex-shrink: 0; }
+
+        .nombre {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.6rem;
+        }
+
+        .curso {
+            color: #2ecc71;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 1.4rem;
+        }
+
+        .detalles {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            margin-bottom: 1.6rem;
+        }
+        .detalle-fila {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.88rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #1e2a3a;
+        }
+        .detalle-fila .label { color: #8a94a6; }
+        .detalle-fila .valor { color: #e0e0e0; font-weight: 500; }
+
+        .codigo-box {
+            background: #0a0f1a;
+            border: 1px solid #1e2a3a;
+            border-radius: 8px;
+            padding: 0.7rem 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #8a94a6;
+            letter-spacing: 0.1em;
+        }
+
+        /* -- Estado: No encontrado -- */
+        .badge-error {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+            padding: 0.45rem 1.2rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1.2rem;
+        }
+
+        .mensaje-error {
+            color: #8a94a6;
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
+        /* -- Estado: Sin código -- */
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .input-group input {
+            flex: 1;
+            background: #0a0f1a;
+            border: 1px solid #1e2a3a;
+            border-radius: 8px;
+            padding: 0.7rem 1rem;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            outline: none;
+        }
+        .input-group input:focus {
+            border-color: #2ecc71;
+        }
+        .input-group button {
+            background: #2ecc71;
+            color: #0a0f1a;
+            border: none;
+            border-radius: 8px;
+            padding: 0.7rem 1.2rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .input-group button:hover {
+            background: #27ae60;
+        }
+    </style>
+</head>
+<body>
+    <div class="card" id="card">
+        <h1>Verificación de Constancia</h1>
+        <p class="loading">Consultando datos…</p>
+    </div>
+
+    <script>
+        const DATOS_URL = "datos.json";
+
+        async function cargarDatos() {
+            try {
+                const resp = await fetch(DATOS_URL);
+                if (!resp.ok) throw new Error("No se pudo cargar datos.json");
+                return await resp.json();
+            } catch (e) {
+                console.error(e);
+                return null;
+            }
+        }
+
+        function obtenerCodigo() {
+            const params = new URLSearchParams(window.location.search);
+            return (params.get("id") || "").trim().toUpperCase();
+        }
+
+        function renderEncontrado(registro, codigo) {
+            const card = document.getElementById("card");
+            card.innerHTML = `
+                <h1>Verificación de Constancia</h1>
+                <div class="badge">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <circle cx="8" cy="8" r="7" stroke="#2ecc71" stroke-width="1.5"/>
+                        <path d="M5 8.5L7 10.5L11 6" stroke="#2ecc71" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Constancia válida
+                </div>
+                <p class="nombre">${registro.nombre}</p>
+                <p class="curso">${registro.curso}</p>
+                <div class="detalles">
+                    <div class="detalle-fila">
+                        <span class="label">Duración</span>
+                        <span class="valor">${registro.duracion}</span>
+                    </div>
+                    <div class="detalle-fila">
+                        <span class="label">Fechas</span>
+                        <span class="valor">${registro.fechas}</span>
+                    </div>
+                    <div class="detalle-fila">
+                        <span class="label">Instructora</span>
+                        <span class="valor">${registro.instructora}</span>
+                    </div>
+                    <div class="detalle-fila">
+                        <span class="label">Fecha de emisión</span>
+                        <span class="valor">${registro.fecha_emision}</span>
+                    </div>
+                </div>
+                <div class="codigo-box">Código: ${codigo}</div>
+            `;
+        }
+
+        function renderNoEncontrado(codigo) {
+            const card = document.getElementById("card");
+            card.innerHTML = `
+                <h1>Verificación de Constancia</h1>
+                <div class="badge-error">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <circle cx="8" cy="8" r="7" stroke="#e74c3c" stroke-width="1.5"/>
+                        <path d="M6 6L10 10M10 6L6 10" stroke="#e74c3c" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    Código no encontrado
+                </div>
+                <p class="mensaje-error">
+                    El código <strong>${codigo}</strong> no coincide con ninguna constancia emitida.
+                    Verifica que esté escrito correctamente.
+                </p>
+            `;
+        }
+
+        function renderFormulario() {
+            const card = document.getElementById("card");
+            card.innerHTML = `
+                <h1>Verificación de Constancia</h1>
+                <p class="mensaje-error">
+                    Ingresa el código de verificación que aparece en la constancia.
+                </p>
+                <div class="input-group">
+                    <input type="text" id="inputCodigo" placeholder="Ej. 9ECF3035" maxlength="8">
+                    <button onclick="buscar()">Verificar</button>
+                </div>
+            `;
+            document.getElementById("inputCodigo").addEventListener("keydown", (e) => {
+                if (e.key === "Enter") buscar();
+            });
+        }
+
+        async function buscar() {
+            const codigo = document.getElementById("inputCodigo").value.trim().toUpperCase();
+            if (!codigo) return;
+            // Redirect con el código en la URL para que sea compartible
+            window.location.search = `?id=${codigo}`;
+        }
+
+        async function init() {
+            const codigo = obtenerCodigo();
+
+            if (!codigo) {
+                renderFormulario();
+                return;
+            }
+
+            const datos = await cargarDatos();
+
+            if (!datos) {
+                renderNoEncontrado(codigo);
+                return;
+            }
+
+            const registro = datos[codigo];
+            if (registro) {
+                renderEncontrado(registro, codigo);
+            } else {
+                renderNoEncontrado(codigo);
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
